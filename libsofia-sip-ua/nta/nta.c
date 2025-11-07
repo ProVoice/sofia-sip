@@ -8868,6 +8868,11 @@ static
 void outgoing_free(nta_outgoing_t *orq)
 {
   SU_DEBUG_9(("nta: outgoing_free(%p)\n", (void *)orq));
+
+  /* Remove fork from parent's list before freeing */
+  if (orq->orq_forked && orq->orq_forking)
+    outgoing_remove_fork(orq);
+
   assert(orq->orq_forks == NULL && orq->orq_forking == NULL);
   outgoing_cut_off(orq);
   outgoing_reclaim(orq);
@@ -8887,11 +8892,6 @@ outgoing_cut_off(nta_outgoing_t *orq)
 
   if (outgoing_is_queued(orq))
     outgoing_remove(orq);
-
-#if 0
-  if (orq->orq_forked)
-    outgoing_remove_fork(orq);
-#endif
 
   outgoing_reset_timer(orq);
 
@@ -9343,7 +9343,7 @@ outgoing_remove_fork(nta_outgoing_t *orq)
     }
   }
 
-  assert(orq == NULL);
+  assert(orq->orq_forking == NULL);
 }
 
 /** Terminate a client transaction. */
